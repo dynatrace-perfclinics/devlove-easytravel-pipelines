@@ -1,7 +1,7 @@
 node {
     properties([
         parameters([
-         string(defaultValue: 'http://easytravel-dynatrace.com', description: 'URI of the EasyTravel Application you want to run a test against', name: 'DeploymentURI', trim: false),
+         string(defaultValue: 'easytravel-public-ip.nip.io', description: 'Magic Domain of the EasyTravel Application you want to run a test against, example 10.12.34.123.nip.io . The REST endpoint and EasyTravel Classic application will be accessed via subdomains e.g. http://rest.10.12.34.123.nip.io ', name: 'DeploymentURI', trim: false),
         ])
     ])
 
@@ -42,10 +42,10 @@ node {
              job: 'easytravel-continuous-deployment',
              parameters: [
                [ $class: 'StringParameterValue', name: 'EasyTravelDeployment',value: "${problemPattern}" ],
-               [ $class: 'StringParameterValue', name: 'Project',value: "easytravel" ],
-               [ $class: 'StringParameterValue', name: 'Stage',value: "integration" ],
-               [ $class: 'StringParameterValue', name: 'Service',value: "frontend-classic" ],
-               [ $class: 'StringParameterValue', name: 'TestStrategy',value: "performance_10" ],
+               [ $class: 'StringParameterValue', name: 'Project',value: "Easytravel" ],
+               [ $class: 'StringParameterValue', name: 'Stage',value: "Staging" ],
+               [ $class: 'StringParameterValue', name: 'Service',value: "EasytravelQualityGate" ],
+               [ $class: 'StringParameterValue', name: 'TestStrategy',value: "performance_5" ],
                [ $class: 'StringParameterValue', name: 'DeploymentURI',value: "${params.DeploymentURI}" ]
              ],
             )
