@@ -1,0 +1,45 @@
+# EasyTravel AzureDevOps Pipeline 
+# The Pipeline will be triggered each hour and for each hour there is a ProblemPattern to be activated. 
+# This will be saved in a easytravel.image file and will be read in the release pipeline.  
+
+#trigger:
+#- master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+schedules:
+- cron: "0 * * * *"
+  displayName: Hourly build
+  branches:
+    include:
+    - master
+  always: true
+
+steps:
+- script: |
+    echo "EASYTRAVELDEPLOYMENT = $EASYTRAVELDEPLOYMENT"
+    ls '$(System.DefaultWorkingDirectory)'
+    pwd
+    env
+  displayName: 'Show files build and vars'
+- task: Bash@3
+  inputs:
+    filePath: '$(System.DefaultWorkingDirectory)/set_deployment_var.sh'
+
+- script: |
+    echo "EASYTRAVELDEPLOYMENT= $EASYTRAVELDEPLOYMENT"
+    ls
+    ls '$(System.DefaultWorkingDirectory)'
+  displayName: 'Check deployment vars'
+- task: CopyFiles@2
+  inputs:
+    SourceFolder: '$(Build.SourcesDirectory)'
+    Contents: |
+      **/*
+      !.git/**/*
+    targetFolder: $(Build.ArtifactStagingDirectory)
+- task: PublishBuildArtifacts@1
+  inputs:
+    pathToPublish: $(Build.ArtifactStagingDirectory)
+    artifactName: MyBuildOutputs
