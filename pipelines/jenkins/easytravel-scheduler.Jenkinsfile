@@ -18,10 +18,10 @@ node {
        //  6  7  8  9 10 11 
        // 12  13 14 15 16 17 
        // 18  19 20 21 22 23
-       def problemPattern = "None"
+       def problemPattern = "Zero"
 
        if ( t == 0 ||  t == 6 ||  t == 12 ||  t == 18 ){
-          problemPattern = "None"
+          problemPattern = "Zero"
        } else if( t == 1 ||  t == 7 ||  t == 13 ||  t == 19 ){
           problemPattern = "CPULoadJourneyService"
        } else if( t == 2 ||  t == 8 ||  t == 14 ||  t == 20 ){
@@ -33,7 +33,7 @@ node {
        } else if( t == 5 ||  t == 11 ||  t == 17 ||  t == 23 ){
            problemPattern = "CreditCardCheckError500"
        } else {
-          problemPattern = "None"
+          problemPattern = "Zero"
        }
 
        println("And the problemPattern is:" + problemPattern)

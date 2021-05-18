@@ -7,10 +7,9 @@ def keptn = new sh.keptn.Keptn()
 
 node {
     try {
-
         properties([
             parameters([
-            choice(choices: ['None', 'CPULoadJourneyService', 'DBSpammingAuthWithAppDeployment', 'LoginProblems', 'JourneyUpdateSlow', 'CreditCardCheckError500'], description: 'Name of the Deployment (Bug) in Easytravel to enable', name: 'EasyTravelDeployment', trim: false), 
+            choice(choices: ['Zero', 'CPULoadJourneyService', 'DBSpammingAuthWithAppDeployment', 'LoginProblems', 'JourneyUpdateSlow', 'CreditCardCheckError500'], description: 'Name of the Deployment (Bug) in Easytravel to enable', name: 'EasyTravelDeployment', trim: false), 
             string(defaultValue: 'easytravel', description: 'Name of your Keptn Project for Performance as a Self-Service', name: 'Project', trim: false), 
             string(defaultValue: 'staging', description: 'Stage in your Keptn project used for Performance Feedback', name: 'Stage', trim: false), 
             string(defaultValue: 'classic-eval', description: 'Servicename (tag) used to keep SLIs, SLOs, test files ...(in Classic ET is the easyTravel Customer Frontend', name: 'Service', trim: false),
@@ -20,9 +19,11 @@ node {
             ])
         ])
 
+        // Define Keptn Variables
+        def keptnMap = [project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", keptn_endpoint: env.KEPTN_ENDPOINT, keptn_api_token: env.KEPTN_API_TOKEN, keptn_bridge: env.KEPTN_BRIDGE]
+
         stage('Deploy EasyTravel Change') {
 
-            //TODO Push Deployment Event to Dynatrace?
             def response = httpRequest url: "http://rest.${params.DeploymentURI}/services/ConfigurationService/setPluginEnabled?name=${params.EasyTravelDeployment}&enabled=true",
                 httpMode: 'GET',
                 timeout: 5,
@@ -34,16 +35,78 @@ node {
             More about EasyTravel problems
             https://community.dynatrace.com/community/pages/viewpage.action?title=Available+easyTravel+Problem+Patterns&spaceKey=DL        
             */
+            String dt_tenant = env.DT_TENANT
+            String dt_api_token = env.DT_API_TOKEN
+
+            def requestBody = """{
+                |   "eventType": "CUSTOM_DEPLOYMENT",
+                |   "attachRules": {
+                |       "tagRule" : {
+                |           "meTypes" : [ "SERVICE", "APPLICATION" ],
+                |           "tags": [
+                |                    {
+                |                        "context": "CONTEXTLESS",
+                |                        "key": "Stage",
+                |                        "value": "Staging"
+                |                    },
+                |                    {
+                |                        "context": "CONTEXTLESS",
+                |                        "key": "Application",
+                |                        "value": "EasyTravel"
+                |                    }
+                |                    ]
+                |       }
+                |   },
+                |   "deploymentName":"Deployment of feature [${params.EasyTravelDeployment}] with test-strategy ${params.TestStrategy} ",
+                |   "deploymentVersion":"${params.EasyTravelDeployment}.${BUILD_ID}",
+                |   "deploymentProject":"Easytravel FeatureFlags",
+                |   "remediationAction":"https://dynatrace-perfclinics.github.io/codelabs/deploy-easytravel-at-localhost/index.html#6",
+                |   "ciBackLink":"${BUILD_URL}",
+                |   "source":"Jenkins",
+                |   "customProperties":{
+                |       "pipelineName":"${JOB_NAME}",
+                |       "Project":"Why Devs Love Dynatrace",
+                |       "Jenkins Build Number": "${BUILD_ID}",
+                |       "Git Commit": "yae703c3",
+                |       "Git Approver": "sergio.hinojosa@dynatrace.com",
+                |       "ConfigurationService": "http://rest.${params.DeploymentURI}/services/ConfigurationService/",
+                |       "ProblemPattern": "${params.EasyTravelDeployment}",
+                |       "DeploymentURL": "http://classic.${params.DeploymentURI}",
+                |       "Documentation": "https://dynatrace-perfclinics.github.io/codelabs/why-devs-love-dynatrace-2/"
+                | }
+                }
+            """.stripMargin()
+
+            echo requestBody
+            def response_dt = httpRequest contentType: 'APPLICATION_JSON', 
+                customHeaders: [[maskValue: true, name: 'Authorization', value: "Api-Token ${dt_api_token}"]], 
+                httpMode: 'POST', 
+                requestBody: requestBody, 
+                responseHandle: 'STRING', 
+                url: "https://${dt_tenant}/api/v1/events/", 
+                validResponseCodes: "100:404", 
+                ignoreSslErrors: false
+            
+            echo response_dt.content
+
         }
 
         stage('Initialize Keptn') {
 
+
             // Only Upload files if Project, Stage and Service exists, otherwise we give the customer the chance to modify them directly in GitOps.
             echo "Evaluating if Project.Stage.Service is availbale on Keptn, if not it will be created and the ressources will be uploaded."
-            def exists = keptn.keptnProjectServiceExists project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", keptn_endpoint: env.KEPTN_ENDPOINT, keptn_api_token:env.KEPTN_API_TOKEN 
+           
+            // Initiate the variables the json file
+            def exists = keptn.keptnProjectServiceExists(keptnMap)
 
             if (exists) {
-                echo "Project.Stage.Service already available in Keptn. No further action required!"
+                echo "Project.Stage.Service [${params.Project}.${params.Stage}.${params.Service}] already available in Keptn. No further action required!"
+                keptnMap.put('monitoring','dynatrace' )
+                keptnMap.put('shipyard','keptn/shipyard.yaml' )
+                // Initialize object so we can call the functions later with the values.
+                keptn.keptnInit keptnMap
+
             } else {
                 echo "Project.Stage.Service not available in Keptn. Further action required! Setting up the Project.Stage.Service"
                 echo "Initialize Keptn and upload SLI,SLO and JMeter files from Github https://github.com/dynatrace-perfclinics/devlove-easytravel-pipelines/"
@@ -58,7 +121,9 @@ node {
                 archiveArtifacts artifacts:'keptn/**/*.*'
 
                 // Initialize the Keptn Project
-                keptn.keptnInit project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", monitoring:"dynatrace" , shipyard:'keptn/shipyard.yaml'
+                keptnMap.put('monitoring','dynatrace' )
+                keptnMap.put('shipyard','keptn/shipyard.yaml' )
+                keptn.keptnInit keptnMap
 
                 // Upload all the files
                 keptn.keptnAddResources('keptn/shipyard.yaml','shipyard.yaml')
@@ -77,9 +142,15 @@ node {
             echo "Performance as a Self-Service: Triggering Keptn to execute Tests against http://classic.${params.DeploymentURI}"
 
             // send deployment finished to trigger tests
-            //TODO Remove port due bug in 0.8
+            //TODO Remove port from URI due bug in 0.8
             //https://github.com/keptn/keptn/issues/3916
-            def keptnContext = sendConfigurationTriggeredEventEasyTravel testStrategy:"${params.TestStrategy}", deploymentURI:"http://classic.${params.DeploymentURI}:80" , problemPattern:"${params.EasyTravelDeployment}"
+            keptnMap.put('testStrategy', params.TestStrategy )
+            keptnMap.put('deploymentURI',"http://classic.${params.DeploymentURI}:80")
+            keptnMap.put('problemPattern', params.EasyTravelDeployment)
+
+            def keptnContext = sendConfigurationTriggeredEventEasyTravel keptnMap
+            keptnMap.put('keptnContext', keptnContext)
+            
             // sendConfigurationTriggeredEvent
             String keptn_bridge = env.KEPTN_BRIDGE
             echo "Open Keptns Bridge: ${keptn_bridge}/trace/${keptnContext}"
@@ -93,7 +164,10 @@ node {
 
             if(waitTime > 0) {
                 echo "Waiting until Keptn is done and returns the results"
-                def result = keptn.waitForEvaluationDoneEvent setBuildResult:true, waitTime:waitTime
+
+                keptnMap.put('setBuildResult',true)
+                keptnMap.put('waitTime',waitTime)
+                def result = keptn.waitForEvaluationDoneEvent keptnMap
                 echo "${result}"
             } else {
                 echo "Not waiting for results. Please check the Keptns bridge for the details!"
@@ -117,7 +191,6 @@ node {
                 httpMode: 'GET',
                 validResponseCodes: "202",
                 timeout: 5
-            
             println("Status: "+response.status)
             println("Content: "+response.content)
         }
@@ -125,7 +198,6 @@ node {
     } catch (e) {
         echo 'The new deployment failed, we do the needed action here'
         // Since we're catching the exception in order to report on it,
-
         throw e
         // we need to re-throw it, to ensure that the build is marked as failed
    } finally {
@@ -146,7 +218,6 @@ node {
  }
 }
 
-
 /**
  * sendConfigurationTriggeredEvent(project, stage, service, image, [labels, keptn_endpoint, keptn_api_token])
  * Example: sendConfigurationTriggeredEvent
@@ -157,6 +228,8 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
     //def keptnInit = keptnLoadFromInit(args)
     def keptn = new sh.keptn.Keptn()
     def keptnInit = keptn.keptnLoadFromInit(args)
+    echo "*** Printing Args ${args}"
+    echo "*** Printing keptnInit ${keptnInit}"
 
     /* String project, String stage, String service, String deploymentURI, String testStrategy */
     String keptn_endpoint = args.containsKey('keptn_endpoint') ? args.keptn_endpoint : env.KEPTN_ENDPOINT
