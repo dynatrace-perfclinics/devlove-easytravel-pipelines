@@ -4,7 +4,7 @@ metadata:
   name: "shipyard"
 spec:
   stages:
-    - name: "integrationstage"
+    - name: "staging"
       sequences:
         - name: "delivery"
           tasks:

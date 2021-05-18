@@ -42,9 +42,9 @@ node {
              job: 'easytravel-continuous-deployment',
              parameters: [
                [ $class: 'StringParameterValue', name: 'EasyTravelDeployment',value: "${problemPattern}" ],
-               [ $class: 'StringParameterValue', name: 'Project',value: "Easytravel" ],
-               [ $class: 'StringParameterValue', name: 'Stage',value: "Staging" ],
-               [ $class: 'StringParameterValue', name: 'Service',value: "EasytravelQualityGate" ],
+               [ $class: 'StringParameterValue', name: 'Project',value: "easytravel" ],
+               [ $class: 'StringParameterValue', name: 'Stage',value: "staging" ],
+               [ $class: 'StringParameterValue', name: 'Service',value: "classic-eval" ],
                [ $class: 'StringParameterValue', name: 'TestStrategy',value: "performance_5" ],
                [ $class: 'StringParameterValue', name: 'DeploymentURI',value: "${params.DeploymentURI}" ]
              ],

@@ -13,7 +13,7 @@ node {
             choice(choices: ['None', 'CPULoadJourneyService', 'DBSpammingAuthWithAppDeployment', 'LoginProblems', 'JourneyUpdateSlow', 'CreditCardCheckError500'], description: 'Name of the Deployment (Bug) in Easytravel to enable', name: 'EasyTravelDeployment', trim: false), 
             string(defaultValue: 'easytravel', description: 'Name of your Keptn Project for Performance as a Self-Service', name: 'Project', trim: false), 
             string(defaultValue: 'staging', description: 'Stage in your Keptn project used for Performance Feedback', name: 'Stage', trim: false), 
-            string(defaultValue: 'EasytravelQualityGate', description: 'Servicename (tag) used to keep SLIs, SLOs, test files ...(in Classic ET is the easyTravel Customer Frontend', name: 'Service', trim: false),
+            string(defaultValue: 'classic-eval', description: 'Servicename (tag) used to keep SLIs, SLOs, test files ...(in Classic ET is the easyTravel Customer Frontend', name: 'Service', trim: false),
             choice(choices: ['performance', 'performance_10', 'performance_50', 'performance_100', 'performance_long'], description: 'Test Strategy aka Workload, e.g: performance, performance_10, performance_50, performance_100, performance_long', name: 'TestStrategy', trim: false),
             string(defaultValue: 'easytravel-public-ip.nip.io', description: 'Magic Domain of the EasyTravel Application you want to run a test against, example 10.12.34.123.nip.io. The REST endpoint and EasyTravel Classic application will be accessed via subdomains e.g. http://rest.10.12.34.123.nip.io ', name: 'DeploymentURI', trim: false),
             string(defaultValue: '60', description: 'How many minutes to wait until Keptn is done? 0 to not wait', name: 'WaitForResult'),
@@ -56,17 +56,19 @@ node {
             keptn.keptnAddResources('keptn/sli.yaml','dynatrace/sli.yaml')
             keptn.keptnAddResources('keptn/slo.yaml','slo.yaml')
             keptn.keptnAddResources('keptn/jmeter/easytravel-classic-random-book.jmx','jmeter/easytravel-classic-random-book.jmx')
+            keptn.keptnAddResources('keptn/jmeter/jmeter.conf.yaml','jmeter/jmeter.conf.yaml')
             //keptn.keptnAddResources('keptn/jmeter/easytravel-users.txt','jmeter/easytravel-users.txt')
             //TODO How to add ressources to loadtest?
             //https://github.com/keptn/enhancement-proposals/issues/21
-            keptn.keptnAddResources('keptn/jmeter/jmeter.conf.yaml','jmeter/jmeter.conf.yaml')
         }
 
         stage('Trigger Performance Test') {
             echo "Performance as a Self-Service: Triggering Keptn to execute Tests against http://classic.${params.DeploymentURI}"
 
             // send deployment finished to trigger tests
-            def keptnContext = sendConfigurationTriggeredEventEasyTravel testStrategy:"${params.TestStrategy}", deploymentURI:"http://classic.${params.DeploymentURI}" , problemPattern:"${params.EasyTravelDeployment}"
+            //TODO Remove port due bug in 0.8
+            //https://github.com/keptn/keptn/issues/3916
+            def keptnContext = sendConfigurationTriggeredEventEasyTravel testStrategy:"${params.TestStrategy}", deploymentURI:"http://classic.${params.DeploymentURI}:80" , problemPattern:"${params.EasyTravelDeployment}"
             // sendConfigurationTriggeredEvent
             String keptn_bridge = env.KEPTN_BRIDGE
             echo "Open Keptns Bridge: ${keptn_bridge}/trace/${keptnContext}"
@@ -171,14 +173,14 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
         |    "teststrategy": "${testStrategy}",
         |    "configurationChange": {
         |      "values": {
-        |      "deploymentURIsPublic": "http://classic.${deploymentURI}",
+        |      "deploymentURIsPublic": "${deploymentURI}",
         |      "teststrategy": "${testStrategy}"
         |      }
         |    },
         |    "deployment": {
         |      "deploymentstrategy": "direct",
         |      "deploymentURIsPublic": [
-        |                "http://classic.${deploymentURI}"
+        |                "${deploymentURI}"
         |             ]        
         |    },
         |    "labels": {
@@ -215,69 +217,5 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
     // write response to keptn.context.json & add to artifacts
     def keptnContext = keptn.writeKeptnContextFiles(response)
     
-    return keptnContext
-}
-
-/** TODO 
- * sendDeploymentFinishedEvent(project, stage, service, deploymentURI, testStrategy [keptn_endpoint, keptn_api_token])
- * Example: sendDeploymentFinishedEvent deploymentURI:"http://mysampleapp.mydomain.local" testStrategy:"performance"
- * Will trigger a Continuous Performance Evaluation workflow in Keptn where Keptn will
-    -> first: trigger a test execution against that URI with the specified testStrategy
-    -> second: trigger an SLI/SLO evaluation!
- */
-def sendDeploymentFinishedEventEasyTravel(Map args) {
-    def keptn = new sh.keptn.Keptn()
-    def keptnInit = keptn.keptnLoadFromInit(args)
-
-    /* String project, String stage, String service, String deploymentURI, String testStrategy */
-    String keptn_endpoint = args.containsKey('keptn_endpoint') ? args.keptn_endpoint : env.KEPTN_ENDPOINT
-    String keptn_api_token = args.containsKey('keptn_api_token') ? args.keptn_api_token : env.KEPTN_API_TOKEN
-
-    String project = keptnInit['project']
-    String stage = keptnInit['stage']
-    String service = keptnInit['service']
-    String deploymentURI = args.containsKey('deploymentURI') ? args.deploymentURI : ''
-    String testStrategy = args.containsKey('testStrategy') ? args.testStrategy : ''
-    String problemPattern = args.containsKey('problemPattern') ? args.problemPattern : ''
-
-    echo "Sending a Deployment Finished event to Keptn for ${project}.${stage}.${service} on ${deploymentURI} with testStrategy ${testStrategy}"
-
-    def requestBody = """{
-        |  "contenttype": "application/json",
-        |  "data": {
-        |    "deploymentURIPublic": "http://classic.${deploymentURI}",
-        |    "teststrategy" : "${testStrategy}",
-        |    "project": "${project}",
-        |    "service": "${service}",
-        |    "stage": "${stage}",
-        |    "image" : "${JOB_NAME}",
-        |    "tag" : "${BUILD_NUMBER}",
-        |    "labels": {
-        |      "build" : "${BUILD_NUMBER}",
-        |      "jobname" : "${JOB_NAME}",
-        |      "problemPattern" : "${problemPattern}",
-        |      "joburl" : "${BUILD_URL}"
-        |    }
-        |  },
-        |  "source": "jenkins-library",
-        |  "specversion": "0.2",
-        |  "type": "sh.keptn.events.deployment-finished"
-        |}
-    """.stripMargin()
-
-    echo requestBody
-
-    def response = httpRequest contentType: 'APPLICATION_JSON',
-      customHeaders: [[maskValue: true, name: 'x-token', value: "${keptn_api_token}"]],
-      httpMode: 'POST',
-      requestBody: requestBody,
-      responseHandle: 'STRING',
-      url: "${keptn_endpoint}/v1/event",
-      validResponseCodes: '100:404',
-      ignoreSslErrors: true
-
-    // write response to keptn.context.json & add to artifacts
-    def keptnContext = keptn.writeKeptnContextFiles(response)
-
     return keptnContext
 }
