@@ -37,29 +37,40 @@ node {
         }
 
         stage('Initialize Keptn') {
-            echo "Initialize Keptn and upload SLI,SLO and JMeter files from Github https://github.com/dynatrace-perfclinics/devlove-easytravel-pipelines/"
-            keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/shipyard.yaml", 'keptn/shipyard.yaml')
-            keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/dynatrace.conf.yaml", 'keptn/dynatrace.conf.yaml')
-            keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/slo.yaml", 'keptn/slo.yaml')
-            keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/sli.yaml", 'keptn/sli.yaml')
-            keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/easytravel-classic-random-book.jmx', 'keptn/jmeter/easytravel-classic-random-book.jmx')
-            keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/jmeter.conf.yaml', 'keptn/jmeter/jmeter.conf.yaml')
-            //keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/easytravel-users.txt', 'keptn/jmeter/easytravel-users.txt')
-            archiveArtifacts artifacts:'keptn/**/*.*'
 
-            // Initialize the Keptn Project
-            keptn.keptnInit project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", monitoring:"dynatrace" , shipyard:'keptn/shipyard.yaml'
+            // Only Upload files if Project, Stage and Service exists, otherwise we give the customer the chance to modify them directly in GitOps.
+            echo "Evaluating if Project.Stage.Service is availbale on Keptn, if not it will be created and the ressources will be uploaded."
+            def exists = keptn.keptnProjectServiceExists project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", keptn_endpoint: env.KEPTN_ENDPOINT, keptn_api_token:env.KEPTN_API_TOKEN 
 
-            // Upload all the files
-            keptn.keptnAddResources('keptn/shipyard.yaml','shipyard.yaml')
-            keptn.keptnAddResources('keptn/dynatrace.conf.yaml','dynatrace/dynatrace.conf.yaml')
-            keptn.keptnAddResources('keptn/sli.yaml','dynatrace/sli.yaml')
-            keptn.keptnAddResources('keptn/slo.yaml','slo.yaml')
-            keptn.keptnAddResources('keptn/jmeter/easytravel-classic-random-book.jmx','jmeter/easytravel-classic-random-book.jmx')
-            keptn.keptnAddResources('keptn/jmeter/jmeter.conf.yaml','jmeter/jmeter.conf.yaml')
-            //keptn.keptnAddResources('keptn/jmeter/easytravel-users.txt','jmeter/easytravel-users.txt')
-            //TODO How to add ressources to loadtest?
-            //https://github.com/keptn/enhancement-proposals/issues/21
+            if (exists) {
+                echo "Project.Stage.Service already available in Keptn. No further action required!"
+            } else {
+                echo "Project.Stage.Service not available in Keptn. Further action required! Setting up the Project.Stage.Service"
+                echo "Initialize Keptn and upload SLI,SLO and JMeter files from Github https://github.com/dynatrace-perfclinics/devlove-easytravel-pipelines/"
+                keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/shipyard.yaml", 'keptn/shipyard.yaml')
+                keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/dynatrace.conf.yaml", 'keptn/dynatrace.conf.yaml')
+                keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/slo.yaml", 'keptn/slo.yaml')
+                keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/sli.yaml", 'keptn/sli.yaml')
+                keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/easytravel-classic-random-book.jmx', 'keptn/jmeter/easytravel-classic-random-book.jmx')
+                keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/jmeter.conf.yaml', 'keptn/jmeter/jmeter.conf.yaml')
+
+                //keptn.downloadFile('https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/jmeter/easytravel-users.txt', 'keptn/jmeter/easytravel-users.txt')
+                archiveArtifacts artifacts:'keptn/**/*.*'
+
+                // Initialize the Keptn Project
+                keptn.keptnInit project:"${params.Project}", service:"${params.Service}", stage:"${params.Stage}", monitoring:"dynatrace" , shipyard:'keptn/shipyard.yaml'
+
+                // Upload all the files
+                keptn.keptnAddResources('keptn/shipyard.yaml','shipyard.yaml')
+                keptn.keptnAddResources('keptn/dynatrace.conf.yaml','dynatrace/dynatrace.conf.yaml')
+                keptn.keptnAddResources('keptn/sli.yaml','dynatrace/sli.yaml')
+                keptn.keptnAddResources('keptn/slo.yaml','slo.yaml')
+                keptn.keptnAddResources('keptn/jmeter/easytravel-classic-random-book.jmx','jmeter/easytravel-classic-random-book.jmx')
+                keptn.keptnAddResources('keptn/jmeter/jmeter.conf.yaml','jmeter/jmeter.conf.yaml')
+                //keptn.keptnAddResources('keptn/jmeter/easytravel-users.txt','jmeter/easytravel-users.txt')
+                //TODO How to add ressources to loadtest?
+                //https://github.com/keptn/enhancement-proposals/issues/21
+            }
         }
 
         stage('Trigger Performance Test') {
@@ -156,10 +167,10 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
     String project = keptnInit['project']
     String stage = keptnInit['stage']
     String service = keptnInit['service']
-    String image = args.containsKey("image") ? args.image : ""
     String deploymentURI = args.containsKey("deploymentURI") ? args.deploymentURI : ""
     String testStrategy = args.containsKey("testStrategy") ? args.testStrategy : ""
     String problemPattern = args.containsKey('problemPattern') ? args.problemPattern : ''    
+    String image = "easytravel.${problemPattern}"
     String tag = args.containsKey("tag") ? args.tag : "${BUILD_NUMBER}"
 
     echo "Sending a Configuration triggered event to Keptn for ${project}.${stage}.${service}"
@@ -184,7 +195,7 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
         |             ]        
         |    },
         |    "labels": {
-        |      "buildId" : "${tag}",
+        |      "buildId" : "${problemPattern}.${tag}",
         |      "jobname" : "${JOB_NAME}",
         |      "buildNumber": "${BUILD_NUMBER}",
         |      "joburl" : "${BUILD_URL}",
