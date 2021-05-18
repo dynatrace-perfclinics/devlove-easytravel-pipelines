@@ -8,7 +8,6 @@ spec:
       sequences:
         - name: "delivery"
           tasks:
-            - name: "deployment"
             - name: "test"
               properties:
                 teststrategy: "performance"
