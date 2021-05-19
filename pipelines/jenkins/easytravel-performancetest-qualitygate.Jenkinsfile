@@ -4,7 +4,6 @@
 //keptn = Keptn.instance
 def keptn = new sh.keptn.Keptn()
 
-
 node {
     try {
         properties([
@@ -95,7 +94,7 @@ node {
 
 
             // Only Upload files if Project, Stage and Service exists, otherwise we give the customer the chance to modify them directly in GitOps.
-            echo "Evaluating if Project.Stage.Service is availbale on Keptn, if not it will be created and the ressources will be uploaded."
+            echo "Evaluating if Project.Stage.Service is available on Keptn, if not it will be created and the ressources will be uploaded."
            
             // Initiate the variables the json file
             def exists = keptn.keptnProjectServiceExists(keptnMap)
@@ -104,6 +103,7 @@ node {
                 echo "Project.Stage.Service [${params.Project}.${params.Stage}.${params.Service}] already available in Keptn. No further action required!"
                 keptnMap.put('monitoring','dynatrace' )
                 keptnMap.put('shipyard','keptn/shipyard.yaml' )
+                keptn.downloadFile("https://raw.githubusercontent.com/dynatrace-perfclinics/devlove-easytravel-pipelines/master/keptn/shipyard.yaml", 'keptn/shipyard.yaml')
                 // Initialize object so we can call the functions later with the values.
                 keptn.keptnInit keptnMap
 
