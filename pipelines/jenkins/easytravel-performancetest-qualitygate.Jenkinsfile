@@ -13,7 +13,7 @@ node {
             string(defaultValue: 'easytravel', description: 'Name of your Keptn Project for Performance as a Self-Service', name: 'Project', trim: false), 
             string(defaultValue: 'staging', description: 'Stage in your Keptn project used for Performance Feedback', name: 'Stage', trim: false), 
             string(defaultValue: 'classic-eval', description: 'Servicename (tag) used to keep SLIs, SLOs, test files ...(in Classic ET is the easyTravel Customer Frontend', name: 'Service', trim: false),
-            choice(choices: ['fullbooking_10_10', 'fullbooking_5_100', 'fullbooking_10_100', 'fullbooking_10_150', 'fullbooking_50_1000'], description: 'Test Strategy aka Loadtest & Workload, e.g: fullbooking_10_10, fullbooking_5_100 , fullbooking_10_100, fullbooking_10_150, fullbooking_50_1000', name: 'TestStrategy', trim: false),
+            choice(choices: ['fullbooking', 'fullbooking_5_100', 'fullbooking_10_100', 'fullbooking_10_150', 'fullbooking_50_1000'], description: 'Test Strategy aka Loadtest & Workload, e.g: fullbooking, fullbooking_5_100 , fullbooking_10_100, fullbooking_10_150, fullbooking_50_1000', name: 'TestStrategy', trim: false),
             string(defaultValue: 'easytravel-public-ip.nip.io', description: 'Magic Domain of the EasyTravel Application you want to run a test against, example 10.12.34.123.nip.io. The REST endpoint and EasyTravel Classic application will be accessed via subdomains e.g. http://rest.10.12.34.123.nip.io ', name: 'DeploymentURI', trim: false),
             string(defaultValue: '60', description: 'How many minutes to wait until Keptn is done? 0 to not wait', name: 'WaitForResult'),
             ])

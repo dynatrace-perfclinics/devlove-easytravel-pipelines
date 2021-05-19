@@ -31,7 +31,7 @@ workloads:
     thinktime: 250
     acceptederrorrate: 1.0
     script: jmeter/easytravel-classic-random-book.jmx
-  - teststrategy: fullbooking_10_10
+  - teststrategy: fullbooking
     vuser: 10
     loopcount: 10
     thinktime: 250
