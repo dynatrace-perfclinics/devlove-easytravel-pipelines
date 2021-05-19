@@ -10,5 +10,5 @@ spec:
           tasks:
             - name: "test"
               properties:
-                teststrategy: "fullbooking"
+                teststrategy: "fullbooking_5_100"
             - name: "evaluation"

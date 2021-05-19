@@ -254,11 +254,11 @@ def sendConfigurationTriggeredEventEasyTravel(Map args) {
         |    "service": "${service}",
         |    "stage": "${stage}",
         |    "image" : "${image}",
-        |    "teststrategy": "${testStrategy}",
+        |    "testStrategy": "${testStrategy}",
         |    "configurationChange": {
         |      "values": {
         |      "deploymentURIsPublic": "${deploymentURI}",
-        |      "teststrategy": "${testStrategy}"
+        |      "testStrategy": "${testStrategy}"
         |      }
         |    },
         |    "deployment": {
