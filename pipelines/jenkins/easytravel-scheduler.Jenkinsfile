@@ -2,7 +2,8 @@ node {
     properties([
         parameters([
          string(defaultValue: 'easytravel-public-ip.nip.io', description: 'Magic Domain of the EasyTravel Application you want to run a test against, example 10.12.34.123.nip.io . The REST endpoint and EasyTravel Classic application will be accessed via subdomains e.g. http://rest.10.12.34.123.nip.io ', name: 'DeploymentURI', trim: false),
-        ])
+        ]),
+        pipelineTriggers([cron('H(0-1) * * * *')])
     ])
 
     stage('Triggering a scheduled job') {
@@ -37,6 +38,7 @@ node {
        }
 
        println("And the problemPattern is:" + problemPattern)
+       println("triggering continuous pipeline for :" + params.DeploymentURI )
 
        build(
              job: 'easytravel-continuous-deployment',
