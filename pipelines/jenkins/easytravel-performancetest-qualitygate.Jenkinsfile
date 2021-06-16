@@ -41,7 +41,7 @@ node {
                 |   "eventType": "CUSTOM_DEPLOYMENT",
                 |   "attachRules": {
                 |       "tagRule" : {
-                |           "meTypes" : [ "SERVICE", "APPLICATION" ],
+                |           "meTypes" : [ "PROCESS_GROUP_INSTANCE", "APPLICATION" ],
                 |           "tags": [
                 |                    {
                 |                        "context": "CONTEXTLESS",
