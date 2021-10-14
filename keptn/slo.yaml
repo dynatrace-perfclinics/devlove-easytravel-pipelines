@@ -26,10 +26,10 @@
         weight: 2
         pass:
           - criteria:
-              - "<=1" # less than 1% failurerate
+              - "<=3" # less than 3 failed transactions
         warning:
           - criteria:
-              - "<=2" # more than 2 failed transactions is failed
+              - "<=5" # more than 5 failed transactions is failed
         key_sli: true
       - sli: kpi_et_ex
         weight: 2
